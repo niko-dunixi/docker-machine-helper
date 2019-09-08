@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/client"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -36,9 +38,40 @@ func GetDockerClient(dockerClientSupplier DockerClientSupplier) (*client.Client,
 		return dockerClientSupplier()
 	}
 	tlsConfig, err := loadDockerMachineCerts(dockerMachineConfig.tlsCaCert, dockerMachineConfig.tlsCert, dockerMachineConfig.tlsKey)
+	if err != nil {
+		return nil, err
+	}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	httpClient := &http.Client{Transport: transport}
-	return client.NewClient(dockerMachineConfig.url, dockerMachineConfig.version, httpClient, map[string]string{})
+	apiVersion, err := determineApiVersion(dockerMachineConfig.url, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	return client.NewClient(dockerMachineConfig.url, apiVersion, httpClient, map[string]string{})
+}
+
+func determineApiVersion(host string, client *http.Client) (string, error) {
+	regex := regexp.MustCompile("^tcp")
+	host = regex.ReplaceAllString(host, "https")
+	response, err := client.Get(host + "/version")
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	bytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+	responseBody := map[string]string{}
+	err = json.Unmarshal(bytes, &responseBody)
+	if err != nil {
+		return "", err
+	}
+	if apiVersion, ok := responseBody["ApiVersion"]; !ok {
+		return "", fmt.Errorf("could not determine ApiVersion: %+v", responseBody)
+	} else {
+		return apiVersion, nil
+	}
 }
 
 func getDockerMachineConfig() (DockerMachineConfig, error) {
