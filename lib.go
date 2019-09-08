@@ -62,12 +62,12 @@ func determineApiVersion(host string, client *http.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	responseBody := map[string]string{}
+	responseBody := map[string]interface{}{}
 	err = json.Unmarshal(bytes, &responseBody)
 	if err != nil {
 		return "", fmt.Errorf("could not determine ApiVersion (%s): %+v", err, string(bytes))
 	}
-	if apiVersion, ok := responseBody["ApiVersion"]; !ok {
+	if apiVersion, ok := responseBody["ApiVersion"].(string); !ok {
 		return "", fmt.Errorf("could not determine ApiVersion: %+v", responseBody)
 	} else {
 		return apiVersion, nil
