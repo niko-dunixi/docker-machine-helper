@@ -80,13 +80,6 @@ func getDockerMachineConfig() (DockerMachineConfig, error) {
 		return DockerMachineConfig{}, err
 	}
 	config := parseDockerMachineOutput(items)
-	versionSlice, err := getOutputItemsFromDockerMachine("version", "default")
-	if err != nil {
-		return config, err
-	}
-	if len(versionSlice) > 0 {
-		config.version = versionSlice[0]
-	}
 	return config, nil
 }
 
@@ -163,7 +156,6 @@ func parseDockerMachineOutput(outputItems []string) (config DockerMachineConfig)
 
 type DockerMachineConfig struct {
 	url       string
-	version   string
 	tlsVerify bool
 	tlsCaCert string
 	tlsCert   string
