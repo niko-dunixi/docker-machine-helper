@@ -35,7 +35,7 @@ func GetDockerClient(dockerClientSupplier DockerClientSupplier) (*client.Client,
 	if err != nil {
 		return dockerClientSupplier()
 	}
-	tlsConfig, err := loadDockerMachineCerts(dockerMachineConfig.tlsCaCert)
+	tlsConfig, err := loadDockerMachineCerts(dockerMachineConfig.tlsCaCert, dockerMachineConfig.tlsCert, dockerMachineConfig.tlsKey)
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	httpClient := &http.Client{Transport: transport}
 	return client.NewClient(dockerMachineConfig.url, dockerMachineConfig.version, httpClient, map[string]string{})
@@ -58,23 +58,28 @@ func getDockerMachineConfig() (DockerMachineConfig, error) {
 }
 
 // https://forfuncsake.github.io/post/2017/08/trust-extra-ca-cert-in-go-app/
-func loadDockerMachineCerts(caCertPath string) (*tls.Config, error) {
+func loadDockerMachineCerts(caCertFilePath, certFilePath, keyFilePath string) (*tls.Config, error) {
+	// Append our certificate-authority cert to the system pool
 	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
 		rootCAs = x509.NewCertPool()
 	}
-	certs, err := ioutil.ReadFile(caCertPath)
+	certs, err := ioutil.ReadFile(caCertFilePath)
 	if err != nil {
 		return nil, err
 	}
-	// Append our cert to the system pool
 	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
 		return nil, fmt.Errorf("no certs appended, using system certs only")
 	}
-	// Trust the augmented cert pool in our client
+	// Get the actual client certificate
+	certificate, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+	if err != nil {
+		return nil, err
+	}
 	config := &tls.Config{
 		InsecureSkipVerify: false,
 		RootCAs:            rootCAs,
+		Certificates: []tls.Certificate{certificate},
 	}
 	return config, nil
 }
