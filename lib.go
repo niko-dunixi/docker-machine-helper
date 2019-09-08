@@ -38,7 +38,7 @@ func GetDockerClient(dockerClientSupplier DockerClientSupplier) (*client.Client,
 	tlsConfig, err := loadDockerMachineCerts(dockerMachineConfig.tlsCaCert)
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	httpClient := &http.Client{Transport: transport}
-	return client.NewClient(dockerMachineConfig.url, "FAILHERE", httpClient, map[string]string{})
+	return client.NewClient(dockerMachineConfig.url, dockerMachineConfig.version, httpClient, map[string]string{})
 }
 
 func getDockerMachineConfig() (DockerMachineConfig, error) {
@@ -57,6 +57,7 @@ func getDockerMachineConfig() (DockerMachineConfig, error) {
 	return config, nil
 }
 
+// https://forfuncsake.github.io/post/2017/08/trust-extra-ca-cert-in-go-app/
 func loadDockerMachineCerts(caCertPath string) (*tls.Config, error) {
 	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
