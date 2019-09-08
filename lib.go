@@ -57,7 +57,9 @@ func getDockerMachineConfig() (DockerMachineConfig, error) {
 	return config, nil
 }
 
-// https://forfuncsake.github.io/post/2017/08/trust-extra-ca-cert-in-go-app/
+// Important references:
+// 	https://forfuncsake.github.io/post/2017/08/trust-extra-ca-cert-in-go-app/
+// 	https://medium.com/@sirsean/mutually-authenticated-tls-from-a-go-client-92a117e605a1
 func loadDockerMachineCerts(caCertFilePath, certFilePath, keyFilePath string) (*tls.Config, error) {
 	// Append our certificate-authority cert to the system pool
 	rootCAs, _ := x509.SystemCertPool()
